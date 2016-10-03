@@ -1,5 +1,5 @@
 import json
-import json_response
+from json_response import *
 
 JSON_FORMAT_ERROR_MSG = "Invalid json format"
 

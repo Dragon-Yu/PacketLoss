@@ -25,7 +25,9 @@ class LoginTest(TestCase):
     def test_invalid_login(self):
         """
         ensure user_login returns correct json format data when user authentification is incorrect
+        [TODO] other kinds of invalid login information
         """
+        # test case 1 (incorrect password)
         user1 = User(username='user1')
         user1.set_password('1234567890')
         user1.save()
@@ -38,6 +40,7 @@ class LoginTest(TestCase):
         self.assertEqual(response.json()['success'], 'false')
         self.assertEqual(response.json()['data'], {})
         self.assertEqual(response.json()['msg'], 'Password incorrect')
+        # [TODO] other kinds of invalid login information
         
 class RegisterTest(TestCase):
 
@@ -54,6 +57,7 @@ class RegisterTest(TestCase):
         self.assertEqual(response.json()['success'], 'true')
         self.assertEqual(response.json()['data'], {})
         self.assertEqual(response.json()['msg'], 'Register success')
+        User.objects.get(username="user1")
 
     def test_invalid_register(self):
         """
@@ -62,11 +66,10 @@ class RegisterTest(TestCase):
         2. username not valid
         3. userpassword not valid
         """
-
         # test case 1
         user1 = User(username='user1')
         user1.set_password('1234567890')
-        user1.save()        
+        user1.save()
         data = {}
         data['username'] = 'user1'
         data['password'] = '12345678'
@@ -74,4 +77,30 @@ class RegisterTest(TestCase):
         response = self.client.post(reverse('register'), json_data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], 'false')
+        self.assertEqual(len(User.objects.filter(username='user1')) , 1)
         # [TODO] test case 2 & test case 3
+
+class LogoutTest(TestCase):
+    
+    def test_logout(self):        
+        """
+        RT, also a test for @login_required decorator
+        """
+        user1 = User(username='user1')
+        user1.set_password('1234567890')
+        user1.save()
+        data = {}
+        data['username'] = 'user1'
+        data['password'] = '1234567890'
+        json_data = json.dumps(data)
+        self.client.post(reverse('login'), json_data, content_type="application/json")
+
+        response = self.client.get(reverse('logout'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], 'true')
+
+        response = self.client.get(reverse('logout'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], 'false')
+        self.assertEqual(response.json()['msg'], 'Please login first')
+
