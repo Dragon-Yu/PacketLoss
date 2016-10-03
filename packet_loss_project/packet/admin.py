@@ -1,3 +1,5 @@
 from django.contrib import admin
+from packet.models import Packet, Comment
 
-# Register your models here.
+admin.site.register(Packet)
+admin.site.register(Comment)
