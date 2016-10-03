@@ -24,12 +24,3 @@ class Comment(models.Model):
 
     def __str__(self):
         return self.id
-
-class Owned(models.Model):
-    user = models.ForeignKey(User)
-    packet = models.ForeignKey(Packet)
-    pick_up_time = models.DateTimeField()
-    drop_time = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self): #[NOTICE] add __unicode__(self) for python 2.x
-        return self.id
