@@ -9,8 +9,8 @@ def _get_received_data(request, *args):
     1. check it's content type is "applicaton/json"
     2. check every field in args is in the json data
     """ 
-    if (request.META.get('CONTENT_TYPE') != "application/json"):
-        return None
+    #if (request.META.get('CONTENT_TYPE') != "application/json"):
+    #    return None
 
     try:
         received_data = json.loads(request.body)
