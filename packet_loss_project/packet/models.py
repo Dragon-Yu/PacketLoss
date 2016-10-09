@@ -12,6 +12,8 @@ class Packet(models.Model):
     create_time = models.DateTimeField(auto_now_add=True) # [NOTICE] is corresponding to python's datetime.datetime
     creator = models.ForeignKey(User, related_name='created_packets')
     owner = models.ForeignKey(User, null=True, related_name='owning_packets') # take care of the related_name
+    owneders = models.ManyToManyField(User, related_name="owned_packets")
+    ignorers = models.ManyToManyField(User, related_name="ignored_packets")
     
     def __str__(self):
         return self.name
