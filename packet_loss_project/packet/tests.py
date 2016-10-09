@@ -7,18 +7,25 @@ from django.contrib.auth.models import User
 
 from packet.models import Packet, Comment
 
+def make_request(test_case, url, **kwargs):
+    json_data = json.dumps(kwargs)
+    return test_case.client.post(reverse(url), json_data, content_type="application/json")
+
+def check_response_success(test_case, response):
+    data = response.json()
+    test_case.assertEqual(response.status_code, 200)
+    test_case.assertEqual(data['success'], 'true')
+
+def check_response_fail(test_case, response):
+    data = response.json()
+    test_case.assertEqual(response.status_code, 200)
+    test_case.assertEqual(data['success'], 'false')
+
 def add_user(username, password):
     user = User(username=username)
     user.set_password(password)
     user.save()
     return user
-
-def do_login(test_case, username, password):
-    data = {}
-    data['username'] = username
-    data['password'] = password
-    json_data = json.dumps(data)
-    test_case.client.post(reverse('login'), json_data, content_type="application/json")
 
 class DropTest(TestCase):
     # [TODO] combine all the test cases together to simplify the code
@@ -144,3 +151,17 @@ class DropTest(TestCase):
         self.assertEqual(comment.content, "test_comment")
         packet = Packet.objects.get(id=packet_id)
         self.assertEqual(packet.owner, None)
+
+    def test_tmp(self):
+        user = add_user("test_user", "123456")
+        response = make_request(test_case=self, url='login', username="test_user", password="123456")
+        response = make_request(test_case=self, url='drop', packet_name="test_packet_name", content="test_content", lng=0, lat=0)
+        response = make_request(test_case=self, url='pick', id=Packet.objects.all()[0].id, lng=0, lat=0)
+        response = make_request(test_case=self, url='redrop', id=Packet.objects.all()[0].id, comment="test_comment")
+        check_response_success(self, response)
+        #user2 = add_user("test_user2", "123456")
+        #response = make_request(test_case=self, url='login', username="test_user2", password="123456")
+        #check_response_success(self, response)
+        response = make_request(test_case=self, url='get_packet_details', id=Packet.objects.all()[0].id)
+        check_response_success(self, response)
+        print(response.json())
