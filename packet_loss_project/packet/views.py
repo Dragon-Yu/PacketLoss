@@ -6,14 +6,22 @@ from funcs.json_response import true_json_response, false_json_response
 from funcs.decorators import load_json_data, login_required
 from models import Packet, Comment
 
+from math import cos, radians
+
 def get_nearby_packets(longitude, latitude):
-    # [TODO] this function is now fake, it returns the first not picket packet each time
-    # [NOTICE] communicate with the fore-end persons
+    # set a longitude and latitude offset, then calculate longitude ande latitude bound for a certain point
+
+    # offset 0.01 is approximately equal to 1km
+    latitude_offset = 0.01
+    longitude_offset = latitude_offset / cos(radians(latitude))
     try:
         packet = Packet.objects.filter(owner__isnull=True)[0:1]
+        packet = Packet.objects.filter(longitude__range=(longitude - longitude_offset, longitude + longitude_offset),
+                                       latitude__range=(latitude - latitude_offset, latitude + latitude_offset))
     except:
         packet = []
     return packet
+
 
 @login_required
 @load_json_data('packet_name', 'content', 'lat', 'lng')
@@ -108,13 +116,56 @@ def redrop(request, received_data):
     user = request.user
     if packet.owner != user:
         return false_json_response("Premission denied, this packet not belongs to you")
-
-    comment = Comment(packet=packet, user=user, content=comment)
-    comment.save()
+    
+    # [TODO] test this piece of code
+    if len(comment) != 0:
+        comment = Comment(packet=packet, user=user, content=comment)
+        comment.save()
     packet.owner = None
     packet.save()
 
     return true_json_response("Redrop success")
+
+@login_required
+@load_json_data('page_id')
+def get_owning_packets(request, received_data):
+    # [TODO] refactor
+    try:
+        page_id = int(received_data['page_id'])
+    except:
+        return false_json_response("Invalid page_id")
+
+    packets = Packet.objects.filter(owner=request.user).order_by('-create_time')
+    
+    data = []
+    for packet in packets:
+        data.append({'id': packet.id,
+                     'packet_name': packet.name,
+                     'username': packet.creator.username,
+                     'create_time': packet.create_time,})
+
+    return true_json_response(data=data, msg="Get owning packets success")
+
+@login_required
+@load_json_data('page_id')
+def get_owned_packets(request, received_data):
+    # [TODO] refactor
+    try:
+        page_id = int(received_data['page_id'])
+    except:
+        return false_json_response("Invalid page_id")
+
+    # [NOT SURE!!] don't know the effect
+    packets = request.user.owned_packets.exclude(ignorers=request.user).order_by('-create_time')
+
+    # [TODO] refactor dumplicated code (in get owning packets)
+    data = []
+    for packet in packets:
+        data.append({'id': packet.id,
+                     'packet_name': packet.name,
+                     'username': packet.creator.username,
+                     'create_time': packet.create_time,})
+    return true_json_response(data=data, msg="Get owned packets success")
 
 @login_required
 @load_json_data('id')
@@ -149,3 +200,31 @@ def get_packet_details(request, received_data):
         data['comments'].append(comment_data)
 
     return true_json_response(data=data, msg="Get packet details success")
+
+@login_required
+@load_json_data('id')
+def ignore(request, received_data):
+    # [TODO] refactor
+    try:
+        id = int(received_data['id'])
+    except:
+        return false_json_response(msg="Invalid id")
+    # [TODO] dismiss code dumplicate
+    try:
+        packet = Packet.objects.get(id=id)
+    except Packet.DoesNotExist:
+        return false_json_response(msg="Packet does not exist")
+
+    try:
+        packet.owneders.get(username=request.user.username)
+    except User.DoesNotExist:
+        return false_json_response("Permission denied, you don't have right to open get this packet's details")
+    
+    if packet.owner == request.user:
+        packet.owner = None
+        packet.save()
+
+    packet.ignorers.add(request.user)
+
+    return true_json_response(msg="Ignore success")
+
