@@ -38,13 +38,16 @@ def drop(request, received_data={}):
 
     if (longitude <= -180 or longitude > 180 or latitude < -90 or latitude > 90):
         return false_json_response(msg="Invalid longitude or latitude")
+
+    if len(content) == 0:
+        return false_json_response(msg="Content cannot be empty")
         
     user = request.user
     packet = Packet(name=name, content=content, latitude = latitude,
                     longitude=longitude, creator=user)
     packet.save()
     packet.owneders.add(user)
-    return true_json_response(msg="Packet drooped")
+    return true_json_response(msg="Packet droped")
 
 @login_required
 @load_json_data('lat', 'lng')
@@ -190,7 +193,8 @@ def get_packet_details(request, received_data):
             'packet_name': packet.name,
             'username': packet.creator.username,
             'create_time': packet.create_time,
-            'comments': [],}
+            'comments': [],
+            'content': packet.content,}
     comments = Comment.objects.filter(packet=packet)
     
     for comment in comments:
