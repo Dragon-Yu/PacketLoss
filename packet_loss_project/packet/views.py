@@ -156,7 +156,7 @@ def get_owned_packets(request, received_data):
         return false_json_response("Invalid page_id")
 
     # [NOT SURE!!] don't know the effect
-    packets = request.user.owned_packets.exclude(ignorers=request.user).order_by('-create_time').exclude(owner=request.user)
+    packets = request.user.owned_packets.exclude(ignorers=request.user).exclude(owner=request.user).order_by('-create_time')
 
     # [TODO] refactor dumplicated code (in get owning packets)
     data = []
