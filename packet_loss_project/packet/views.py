@@ -58,7 +58,7 @@ def get_nearby_packets(request, received_data={}):
     if (longitude <= -180 or longitude > 180 or latitude < -90 or latitude > 90):
         return false_json_response(msg="Invalid longitude or latitude")
 
-    packets = __get_nearby_packets(longitude, latitude)
+    packets = __get_nearby_packets(longitude, latitude, request.user)
 
     response_data = []
     for packet in packets:
