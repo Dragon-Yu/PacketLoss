@@ -8,19 +8,15 @@ from models import Packet, Comment
 
 from math import cos, radians
 
-def get_nearby_packets(longitude, latitude):
-    # set a longitude and latitude offset, then calculate longitude ande latitude bound for a certain point
+def __get_nearby_packets(longitude, latitude, user):
+    # set a longitude and latitude offset, then calculate longitude ande latitude bound for a certain point                
 
-    # offset 0.01 is approximately equal to 1km
-    latitude_offset = 0.01
-    longitude_offset = latitude_offset / cos(radians(latitude))
-    try:
-        packet = Packet.objects.filter(owner__isnull=True)[0:1]
-        packet = Packet.objects.filter(longitude__range=(longitude - longitude_offset, longitude + longitude_offset),
-                                       latitude__range=(latitude - latitude_offset, latitude + latitude_offset))
-    except:
-        packet = []
-    return packet
+    # offset 0.01 is approximately equal to 1km                                                                            
+
+    latitude_offset = Decimal(0.01)
+    longitude_offset = Decimal(latitude_offset / Decimal(cos(radians(latitude))))
+    packets = Packet.objects.filter(longitude__range=(longitude - longitude_offset, longitude + longitude_offset),latitude__range=(latitude - latitude_offset, latitude + latitude_offset)).exclude(owner=user)
+    return packets
 
 
 @login_required
@@ -38,13 +34,16 @@ def drop(request, received_data={}):
 
     if (longitude <= -180 or longitude > 180 or latitude < -90 or latitude > 90):
         return false_json_response(msg="Invalid longitude or latitude")
+
+    if len(content) == 0:
+        return false_json_response(msg="Content cannot be empty")
         
     user = request.user
     packet = Packet(name=name, content=content, latitude = latitude,
                     longitude=longitude, creator=user)
     packet.save()
     packet.owneders.add(user)
-    return true_json_response(msg="Packet drooped")
+    return true_json_response(msg="Packet droped")
 
 @login_required
 @load_json_data('lat', 'lng')
@@ -59,13 +58,13 @@ def get_nearby_packets(request, received_data={}):
     if (longitude <= -180 or longitude > 180 or latitude < -90 or latitude > 90):
         return false_json_response(msg="Invalid longitude or latitude")
 
-    packets = get_nearby_packets(longitude, latitude)    
+    packets = __get_nearby_packets(longitude, latitude, request.user)
 
     response_data = []
     for packet in packets:
         response_data.append({'id': packet.id,
-                         'lng': packet.longitude,
-                         'lat': packet.latitude,})
+                         'lng': float(packet.longitude),
+                         'lat': float(packet.latitude),})
     
     return true_json_response(data=response_data, msg="Get nearby packets success")
 
@@ -142,7 +141,7 @@ def get_owning_packets(request, received_data):
         data.append({'id': packet.id,
                      'packet_name': packet.name,
                      'username': packet.creator.username,
-                     'create_time': packet.create_time,})
+                     'create_time': packet.create_time.strftime("%Y-%m-%d"),})
 
     return true_json_response(data=data, msg="Get owning packets success")
 
@@ -164,7 +163,7 @@ def get_owned_packets(request, received_data):
         data.append({'id': packet.id,
                      'packet_name': packet.name,
                      'username': packet.creator.username,
-                     'create_time': packet.create_time,})
+                     'create_time': packet.create_time.strftime("%Y-%m-%d"),})
     return true_json_response(data=data, msg="Get owned packets success")
 
 @login_required
@@ -189,14 +188,15 @@ def get_packet_details(request, received_data):
     data = {'id': packet.id,
             'packet_name': packet.name,
             'username': packet.creator.username,
-            'create_time': packet.create_time,
-            'comments': [],}
+            'create_time': packet.create_time.strftime("%Y-%m-%d"),
+            'comments': [],
+            'content': packet.content,}
     comments = Comment.objects.filter(packet=packet)
     
     for comment in comments:
         comment_data = {'content': comment.content,
                         'username': comment.user.username,
-                        'create_time': comment.time,}
+                        'create_time': comment.time.strftime("%Y-%m-%d"),}
         data['comments'].append(comment_data)
 
     return true_json_response(data=data, msg="Get packet details success")

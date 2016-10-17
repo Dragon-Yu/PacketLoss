@@ -16,7 +16,7 @@ class Packet(models.Model):
     ignorers = models.ManyToManyField(User, related_name="ignored_packets")
     
     def __str__(self):
-        return self.name
+        return self.name.encode("utf-8")
 
 class Comment(models.Model):
     packet = models.ForeignKey(Packet)
@@ -25,4 +25,4 @@ class Comment(models.Model):
     content = models.TextField()
 
     def __str__(self):
-        return self.id
+        return self.content.encode("utf-8")
