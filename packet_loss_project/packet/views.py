@@ -43,7 +43,7 @@ def drop(request, received_data={}):
                     longitude=longitude, creator=user)
     packet.save()
     packet.owneders.add(user)
-    return true_json_response(msg="Packet droped")
+    return true_json_response(msg="Packet dropped")
 
 @login_required
 @load_json_data('lat', 'lng')
