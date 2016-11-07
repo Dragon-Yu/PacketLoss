@@ -16,10 +16,12 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 from django.conf.urls import include
+import views
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^user/', include('account.urls')),
     url(r'^packet/', include('packet.urls')),
     url(r'^repo/', include('packet.urls')),
+    url(r'^', views.redirect, name="redirect"),
 ]
