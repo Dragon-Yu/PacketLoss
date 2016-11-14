@@ -1,5 +1,6 @@
 from django.http import HttpResponseRedirect
 
+
 def redirect(request):
     if not request.user.is_authenticated():
         return HttpResponseRedirect("/fore_end/view/login/login.html")
