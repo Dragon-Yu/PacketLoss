@@ -10,6 +10,7 @@ from funcs.decorators import load_json_data, login_required
 from funcs.common_funcs import calculate_credit
 from packet.models import Packet
 
+
 @load_json_data('username', 'password')
 def user_login(request, received_data={}):
     username = received_data.get('username')
@@ -19,7 +20,7 @@ def user_login(request, received_data={}):
     if user:
         if user.is_active:
             login(request, user)
-            return true_json_response(msg= "Login success")
+            return true_json_response(msg="Login success")
         else:
             return false_json_response(msg="Your account is disabled")
     else:
@@ -29,7 +30,7 @@ def user_login(request, received_data={}):
             return false_json_response(msg="No such user")
         else:
             return false_json_response(msg="Password incorrect")
-    
+
 
 @load_json_data('username', 'password')
 def register(request, received_data={}):
@@ -44,11 +45,13 @@ def register(request, received_data={}):
         error_dict = json.loads(user_form.errors.as_json())
         return false_json_response(data=error_dict, msg="Register fail")
 
+
 @login_required
 def user_logout(request):
     # [NOTICE] this is not a defined API
     logout(request)
-    return true_json_response(msg="Logout success")     
+    return true_json_response(msg="Logout success")
+
 
 @login_required
 @load_json_data('old_password', 'new_password')
@@ -64,8 +67,7 @@ def change_password(request, received_data={}):
         else:
             return false_json_response("Password format not valid")
     else:
-        return false_json_response("Old password not correct")
-            
+        return false_json_response("Old password not correct")            
     
 @login_required
 def user_details(request):
@@ -82,4 +84,3 @@ def user_details(request):
         data['total_likes'] += packet.likes
         data['total_dislikes'] += packet.dislikes
     return true_json_response(data=data, msg="Get user details successfully")
-
