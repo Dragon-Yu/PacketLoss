@@ -104,3 +104,37 @@ class LogoutTest(TestCase):
         self.assertEqual(response.json()['success'], 'false')
         self.assertEqual(response.json()['msg'], 'Please login first')
 
+class ChangePasswordTest(TestCase):
+    
+    def test_change_password(self):
+        """
+        RT
+        """
+        user1 = User(username='user1')
+        user1.set_password('1234567890')
+        user1.save()
+        data = {}
+        data['username'] = 'user1'
+        data['password'] = '1234567890'
+        json_data = json.dumps(data)
+        self.client.post(reverse('login'), json_data, content_type="application/json")
+
+        data['old_password'] = '1234567890'
+        data['new_password'] = '1234567890aAa'
+        json_data = json.dumps(data)
+        response = self.client.post(reverse('password'), json_data, content_type="application/json")
+        print(response.json())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], 'true')
+
+        data['username'] = 'user1'
+        data['password'] = '1234567890'
+        json_data = json.dumps(data)
+        response = self.client.post(reverse('login'), json_data, content_type="application/json")
+        self.assertEqual(response.json()['success'], 'false')
+
+        data['username'] = 'user1'
+        data['password'] = '1234567890aAa'
+        json_data = json.dumps(data)
+        response = self.client.post(reverse('login'), json_data, content_type="application/json")
+        self.assertEqual(response.json()['success'], 'true')
