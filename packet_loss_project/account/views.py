@@ -7,6 +7,8 @@ from django.contrib.auth.models import User
 from account.forms import UserForm, PasswordForm
 from funcs.json_response import *
 from funcs.decorators import load_json_data, login_required
+from funcs.common_funcs import calculate_credit
+from packet.models import Packet
 
 @load_json_data('username', 'password')
 def user_login(request, received_data={}):
@@ -57,11 +59,27 @@ def change_password(request, received_data={}):
         if password_form.is_valid():
             user.set_password(received_data['new_password'])
             user.save()
+            login(request, user)
             return true_json_response("Password changed")
         else:
-            print(password_form.errors)
             return false_json_response("Password format not valid")
     else:
         return false_json_response("Old password not correct")
             
     
+@login_required
+def user_details(request):
+    data = {}
+    data['username'] = request.user.username
+    data['credit'] = calculate_credit(request.user)
+    packets = Packet.objects.filter(creator=request.user)
+    data['total_packets'] = len(packets)
+    comments = Packet.objects.filter(user=request.user)
+    data['total_comments'] = len(comments)
+    data['total_likes'] = 0
+    data['total_dislikes'] = 0
+    for packet in packets:
+        data['total_likes'] += packet.likes
+        data['total_dislikes'] += packet.dislikes
+    return true_json_response(data=data, msg="Get user details successfully")
+
