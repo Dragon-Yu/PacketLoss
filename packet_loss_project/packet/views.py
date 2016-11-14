@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from funcs.json_response import true_json_response, false_json_response
 from funcs.decorators import load_json_data, login_required
+from funcs.common_funcs import calculate_credit
 from models import Packet, Comment
 
 
@@ -26,12 +27,6 @@ def __get_nearby_packets(longitude, latitude, user):
     packets = packets.exclude(last_owner=user)
 
     return packets
-
-
-def __calculate_credit(user):
-    # [TODO] impliment this function
-    return 100
-
 
 @login_required
 @load_json_data('packet_name', 'content', 'lat', 'lng', 'delay', 'timeout')
@@ -204,7 +199,7 @@ def get_owning_packets(request, received_data):
         data.append({'id': packet.id,
                      'packet_name': packet.name,
                      'username': packet.creator.username,
-                     'credit': __calculate_credit(packet.creator),
+                     'credit': calculate_credit(packet.creator),
                      'create_time': packet.create_time.strftime("%Y-%m-%d"),
                      'likes': packet.likes,
                      'dislikes': packet.dislikes,})
@@ -230,7 +225,7 @@ def get_owned_packets(request, received_data):
         data.append({'id': packet.id,
                      'packet_name': packet.name,
                      'username': packet.creator.username,
-                     'credit': __calculate_credit(packet.creator),
+                     'credit': calculate_credit(packet.creator),
                      'create_time': packet.create_time.strftime("%Y-%m-%d"),
                      'likes': packet.likes,
                      'dislikes': packet.dislikes,})
@@ -259,7 +254,7 @@ def get_packet_details(request, received_data):
     data = {'id': packet.id,
             'packet_name': packet.name,
             'username': packet.creator.username,
-            'credit': __calculate_credit(packet.creator),
+            'credit': calculate_credit(packet.creator),
             'create_time': packet.create_time.strftime("%Y-%m-%d"),
             'likes': packet.likes,
             'dislikes': packet.dislikes,
