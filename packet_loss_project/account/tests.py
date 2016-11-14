@@ -3,8 +3,8 @@ from django.test import TestCase, Client
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 
+
 class LoginTest(TestCase):
-    
     def test_valid_login_(self):
         """
         ensure user_login returns correct json format data when user authentification is correct
@@ -41,9 +41,9 @@ class LoginTest(TestCase):
         self.assertEqual(response.json()['data'], {})
         self.assertEqual(response.json()['msg'], 'Password incorrect')
         # [TODO] other kinds of invalid login information
-        
-class RegisterTest(TestCase):
 
+
+class RegisterTest(TestCase):
     def test_valid_register(self):
         """
         ensure register returns correct json format data if register information is valid
@@ -77,12 +77,12 @@ class RegisterTest(TestCase):
         response = self.client.post(reverse('register'), json_data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], 'false')
-        self.assertEqual(len(User.objects.filter(username='user1')) , 1)
+        self.assertEqual(len(User.objects.filter(username='user1')), 1)
         # [TODO] test case 2 & test case 3
 
+
 class LogoutTest(TestCase):
-    
-    def test_logout(self):        
+    def test_logout(self):
         """
         RT, also a test for @login_required decorator
         """
@@ -104,8 +104,8 @@ class LogoutTest(TestCase):
         self.assertEqual(response.json()['success'], 'false')
         self.assertEqual(response.json()['msg'], 'Please login first')
 
+
 class ChangePasswordTest(TestCase):
-    
     def test_change_password(self):
         """
         RT
