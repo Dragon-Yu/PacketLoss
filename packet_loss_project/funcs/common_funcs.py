@@ -51,7 +51,7 @@ def check_not_empty_string(x, error_message="Invalid string"):
     check if x a string and if it is empty
     """
     try:
-        s = str(x)
+        s = unicode(x)
         assert(s)
     except:
         raise(InvalidValue(error_message))
