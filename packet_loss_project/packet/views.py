@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from funcs.json_response import true_json_response, false_json_response
 from funcs.decorators import load_json_data, login_required
-from funcs.common_funcs import calculate_credit
+from funcs.common_funcs import *
 from models import Packet, Comment
 
 
@@ -29,43 +29,22 @@ def __get_nearby_packets(longitude, latitude, user):
     return packets
 
 @login_required
-@load_json_data('packet_name', 'content', 'lat', 'lng', 'delay', 'timeout')
+@load_json_data(('packet_name', check_packet_name),
+                ('content', check_content),
+                ('lat', check_lat),
+                ('lng', check_lng),
+                ('delay', check_delay),
+                ('timeout', check_timeout))
 def drop(request, received_data={}):
     # delay and timeout's unit is second
-    # [TODO] add the restrict:one person can drop 60 packets at most within an hour
-
-    print("drop", timezone.now())
+    # [TODO] add the restriction: one person can drop 60 packets at most within an hour
 
     name = received_data['packet_name']
     content = received_data['content']
-
-    if len(content) == 0:
-        return false_json_response(msg="Content cannot be empty")
-
-    # [TODO] refactor this piece of ugly code
-    try:
-        longitude = Decimal(received_data['lng'])
-        latitude = Decimal(received_data['lat'])
-    except InvalidOperation:
-        return false_json_response(msg="Invalid longitude or latitude")
-    if (longitude <= -180 or longitude > 180 or latitude < -90 or latitude > 90):
-        return false_json_response(msg="Invalid longitude or latitude")
-
-    try:
-        delay = int(received_data['delay'])
-        if delay < 0 or delay > 86400:  # 86400 seconds is one day
-            raise Exception('Delay out of range')
-    except:
-        return false_json_response(msg="Invalid delay value")
-
-    try:
-        timeout = int(received_data['timeout'])
-        if (timeout < 0):
-            timeout = 31536000  # [TODO] how to define infinite (31536000 seconds is a year)
-        else:
-            timeout = min(31536000, timeout)
-    except:
-        return false_json_response(msg="Invalid timeout value")
+    longitude = received_data['lng']
+    latitude = received_data['lat']
+    delay = received_data['delay']
+    timeout = received_data['timeout']
 
     create_time = timezone.now()
     can_see_time = create_time + timedelta(seconds=delay)
@@ -80,17 +59,12 @@ def drop(request, received_data={}):
 
 
 @login_required
-@load_json_data('lat', 'lng')
+@load_json_data(('lat', check_lat),
+                ('lng', check_lng))
 def get_nearby_packets(request, received_data={}):
     # [TODO] refactor this piece of ugly code
-    try:
-        longitude = Decimal(received_data['lng'])
-        latitude = Decimal(received_data['lat'])
-    except InvalidOperation:
-        return false_json_response(msg="Invalid longitude or latitude")
-
-    if (longitude <= -180 or longitude > 180 or latitude < -90 or latitude > 90):
-        return false_json_response(msg="Invalid longitude or latitude")
+    longitude = received_data['lng']
+    latitude = received_data['lat']
 
     packets = __get_nearby_packets(longitude, latitude, request.user)
 
@@ -104,23 +78,13 @@ def get_nearby_packets(request, received_data={}):
 
 
 @login_required
-@load_json_data('id', 'lng', 'lat')
+@load_json_data(('id', check_id),
+                ('lng', check_lng),
+                ('lat', check_lat))
 def pick(request, received_data={}):
-    print("pick", timezone.now())
-    # [TODO] refactor this piece of ugly code
-    try:
-        id = int(received_data['id'])  # [NOT SURE] int or other type
-    except:
-        return false_json_response(msg="Invalid id")
-
-    # [TODO] Duplicated code with the one in function "drop"
-    try:
-        longitude = Decimal(received_data['lng'])
-        latitude = Decimal(received_data['lat'])
-    except InvalidOperation:
-        return false_json_response(msg="Invalid longitude or latitude")
-    if (longitude <= -180 or longitude > 180 or latitude < -90 or latitude > 90):
-        return false_json_response(msg="Invalid longitude or latitude")
+    id = received_data['id']
+    longitude = received_data['lng']
+    latitude = received_data['lat']
 
     nearby_packets = __get_nearby_packets(longitude, latitude, request.user)
     try:
@@ -140,24 +104,15 @@ def pick(request, received_data={}):
 
 
 @login_required
-@load_json_data('id', 'comment', 'creator_only', 'ratings')
+@load_json_data(('id', check_id),
+                ('comment', None),
+                ('creator_only', check_creator_only),
+                ('ratings', check_ratings))
 def redrop(request, received_data):
+    id = received_data['id']
     comment = received_data['comment']
-
-    # [TODO] refactor this piece of ugly code
-    try:
-        id = int(received_data['id'])  # [NOT SURE] int or other type
-    except:
-        return false_json_response(msg="Inavlid id")
-
-    only_creator_can_see = (received_data['creator_only'] == 'true')
-
-    try:
-        ratings = int(received_data['ratings'])
-        if ratings != -1 and ratings != 1 and ratings != 0:
-            raise Exception("Invalid ratings")
-    except:
-        return false_json_response(msg="Invalid ratings")
+    only_creator_can_see = received_data['creator_only']
+    ratings = received_data['ratings']
 
     try:
         packet = Packet.objects.get(id=id)
@@ -183,14 +138,10 @@ def redrop(request, received_data):
 
 
 @login_required
-@load_json_data('page_id')
+@load_json_data(('page_id', check_id))
 def get_owning_packets(request, received_data):
-    # [TODO] refactor
     # [TODO] page_id now is useless in this version, the function will return all owning packets
-    try:
-        page_id = int(received_data['page_id'])
-    except:
-        return false_json_response(msg="Invalid page_id")
+    page_id = received_data['page_id']
 
     packets = Packet.objects.filter(owner=request.user).order_by('-create_time')
 
@@ -208,15 +159,11 @@ def get_owning_packets(request, received_data):
 
 
 @login_required
-@load_json_data('page_id')
+@load_json_data(('page_id', check_id))
 def get_owned_packets(request, received_data):
-    # [TODO] refactor
-    try:
-        page_id = int(received_data['page_id'])
-    except:
-        return false_json_response(msg="Invalid page_id")
+    page_id = received_data['page_id']
 
-    packets = request.user.owned_packets.exclude(ignorers=request.user).exclude(owner=request.user).order_by(
+    packets = request.user.owned_packets.exclude(ignorers=request.user).order_by(
         '-create_time')
 
     # [TODO] refactor duplicated code (in get owning packets)
@@ -233,13 +180,9 @@ def get_owned_packets(request, received_data):
 
 
 @login_required
-@load_json_data('id')
+@load_json_data(('id', check_id))
 def get_packet_details(request, received_data):
-    # [TODO] refactor this piece of ugly code
-    try:
-        id = int(received_data['id'])
-    except:
-        return false_json_response(msg="Invalid id")
+    id = int(received_data['id'])
 
     try:
         packet = Packet.objects.get(id=id)
@@ -275,13 +218,9 @@ def get_packet_details(request, received_data):
 
 
 @login_required
-@load_json_data('id')
+@load_json_data(('id', check_id))
 def ignore(request, received_data):
-    # [TODO] refactor
-    try:
-        id = int(received_data['id'])
-    except:
-        return false_json_response(msg="Invalid id")
+    id = int(received_data['id'])
     # [TODO] dismiss code duplication
     try:
         packet = Packet.objects.get(id=id)

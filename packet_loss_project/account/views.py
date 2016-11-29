@@ -7,14 +7,15 @@ from django.contrib.auth.models import User
 from account.forms import UserForm, PasswordForm
 from funcs.json_response import *
 from funcs.decorators import load_json_data, login_required
-from funcs.common_funcs import calculate_credit
-from packet.models import Packet
+from funcs.common_funcs import *
+from packet.models import Packet, Comment
 
 
-@load_json_data('username', 'password')
+@load_json_data(('username', check_username),
+                ('password', check_password))
 def user_login(request, received_data={}):
-    username = received_data.get('username')
-    password = received_data.get('password')
+    username = received_data['username']
+    password = received_data['password']
 
     user = authenticate(username=username, password=password)
     if user:
@@ -32,7 +33,8 @@ def user_login(request, received_data={}):
             return false_json_response(msg="Password incorrect")
 
 
-@load_json_data('username', 'password')
+@load_json_data(('username', check_username),
+                ('password', check_password))
 def register(request, received_data={}):
     # [TODO] response with fail reasons when not success
     user_form = UserForm(data=received_data)
@@ -43,6 +45,7 @@ def register(request, received_data={}):
         return true_json_response(msg="Register success")
     else:
         error_dict = json.loads(user_form.errors.as_json())
+        print(error_dict)
         return false_json_response(data=error_dict, msg="Register fail")
 
 
@@ -54,7 +57,8 @@ def user_logout(request):
 
 
 @login_required
-@load_json_data('old_password', 'new_password')
+@load_json_data(('old_password', check_password),
+                ('new_password', check_password))
 def change_password(request, received_data={}):
     user = authenticate(username=request.user.username, password=received_data['old_password'])
     if user:
@@ -76,7 +80,7 @@ def user_details(request):
     data['credit'] = calculate_credit(request.user)
     packets = Packet.objects.filter(creator=request.user)
     data['total_packets'] = len(packets)
-    comments = Packet.objects.filter(user=request.user)
+    comments = Comment.objects.filter(user=request.user)
     data['total_comments'] = len(comments)
     data['total_likes'] = 0
     data['total_dislikes'] = 0
