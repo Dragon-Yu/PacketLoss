@@ -32,6 +32,17 @@ def add_user(username, password):
     return user
 
 
+def new_packet(packet_name, content, lng, lat, delay, timeout):
+    data = {}
+    data['packet_name'] = packet_name
+    data['content'] = content
+    data['lng'] = lng
+    data['lat'] = lat
+    data['delay'] = delay
+    data['timeout'] = timeout
+    return json.dumps(data)
+
+
 def do_login(self, username, password):
     data = {}
     data['username'] = username
@@ -47,12 +58,7 @@ class DropTest(TestCase):
         # case1 drop packet with valid data
         user1 = add_user('user1', '1234567890')
         do_login(self, 'user1', '1234567890')
-        data = {}
-        data['packet_name'] = "test1"
-        data['content'] = "test1_content"
-        data['lng'] = "123.4567890"
-        data['lat'] = "0.0"
-        json_data = json.dumps(data)
+        json_data = new_packet("test1", "test1_content", 123.4567890, 0.0, 0, -1)
         response = self.client.post(reverse('drop'), json_data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], 'true')
@@ -63,42 +69,34 @@ class DropTest(TestCase):
         self.assertTrue(abs(packet.latitude - 0) <= 0.00000001)
 
         # case2 drop packet with invalid longitude
-        data['lng'] = "180.123"
-        data['lat'] = "20"
-        json_data = json.dumps(data)
+        json_data = new_packet("test1", "test1_content", 180.001, 0.0, 0, -1)
         response = self.client.post(reverse('drop'), json_data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], 'false')
-        self.assertEqual(response.json()['msg'], 'Invalid longitude or latitude')
+        print response.json()['msg']
+        self.assertEqual(response.json()['msg'], 'Invalid longitude')
 
         # case3 drop packet with invalid latitude
-        data['lng'] = "120"
-        data['lat'] = "-90.00001"
-        json_data = json.dumps(data)
+        json_data = new_packet("test1", "test1_content", 179, 90.1, 0, -1)
         response = self.client.post(reverse('drop'), json_data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], 'false')
-        self.assertEqual(response.json()['msg'], 'Invalid longitude or latitude')
+        self.assertEqual(response.json()['msg'], 'Invalid latitude')
 
     def test_nearby_fetch_packet(self):
         # [TODO] the algorithm to fetch nearby packets is fake, need to be changed
         # [TODO] other test cases
         user1 = add_user('user1', '1234567890')
         do_login(self, 'user1', '1234567890')
-        data = {}
-        data['packet_name'] = "test1"
-        data['content'] = "test1_content"
-        data['lng'] = "123.4567890"
-        data['lat'] = "0.0"
-        json_data = json.dumps(data)
+        json_data = new_packet("test1", "test1_content", 123.4567890, 0.0, 0, -1)
         self.client.post(reverse('drop'), json_data, content_type="application/json")
 
         user2 = add_user('user2', '1234567890')
         do_login(self, 'user2', '1234567890')
-        data = {'lng': '123.4567891',
-                'lat': '0.0',}
+        data = {'lng': '123.4567890',
+                'lat': '0.0'}
         json_data = json.dumps(data)
-        response = self.client.post(reverse('fetch'), json_data, content_type="application/json")
+        response = self.client.post(reverse('get_nearby_packets'), json_data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], 'true')
         self.assertTrue(abs(Decimal(response.json()['data'][0]['lng']) - Decimal("123.4567890")) <= 0.00000001)
@@ -107,22 +105,21 @@ class DropTest(TestCase):
     def test_pick_packet(self):
         user1 = add_user('user1', '1234567890')
         do_login(self, 'user1', '1234567890')
-        data = {}
-        data['packet_name'] = "test1"
-        data['content'] = "test1_content"
-        data['lng'] = "123.4567890"
-        data['lat'] = "0.0"
-        json_data = json.dumps(data)
+        json_data = new_packet("test1", "test1_content", 123.4567890, 0.0, 0, -1)
         self.client.post(reverse('drop'), json_data, content_type="application/json")
 
         user2 = add_user('user2', '1234567890')
         do_login(self, 'user2', '1234567890')
         data = {'lng': '123.4567891',
-                'lat': '0.0',}
+                'lat': '0.0'
+                }
         json_data = json.dumps(data)
-        response = self.client.post(reverse('fetch'), json_data, content_type="application/json")
+        response = self.client.post(reverse('get_nearby_packets'), json_data, content_type="application/json")
         packet_id = response.json()['data'][0]['id']
-        data = {'id': packet_id}
+        data = {'id': packet_id,
+                'lng': '123.4567891',
+                'lat': '0.0'
+                }
         json_data = json.dumps(data)
         response = self.client.post(reverse('pick'), json_data, content_type="application/json")
         packet = Packet.objects.get(id=int(packet_id))
@@ -135,26 +132,26 @@ class DropTest(TestCase):
     def test_redrop_packet(self):
         user1 = add_user('user1', '1234567890')
         do_login(self, 'user1', '1234567890')
-        data = {}
-        data['packet_name'] = "test1"
-        data['content'] = "test1_content"
-        data['lng'] = "123.4567890"
-        data['lat'] = "0.0"
-        json_data = json.dumps(data)
+        json_data = new_packet("test1", "test1_content", 123.4567890, 0.0, 0, -1)
         self.client.post(reverse('drop'), json_data, content_type="application/json")
 
         user2 = add_user('user2', '1234567890')
         do_login(self, 'user2', '1234567890')
         data = {'lng': '123.4567891',
-                'lat': '0.0',}
+                'lat': '0.0',
+                }
         json_data = json.dumps(data)
-        response = self.client.post(reverse('fetch'), json_data, content_type="application/json")
+        response = self.client.post(reverse('get_nearby_packets'), json_data, content_type="application/json")
         packet_id = response.json()['data'][0]['id']
-        data = {'id': packet_id}
+        data = {'id': packet_id,
+                'lng': '123.4567891',
+                'lat': '0.0',}
         json_data = json.dumps(data)
         response = self.client.post(reverse('pick'), json_data, content_type="application/json")
         data = {'id': packet_id,
-                'comment': "test_comment",}
+                'comment': "test_comment",
+                'creator_only': 'flase',
+                'ratings': 1}
         json_data = json.dumps(data)
         response = self.client.post(reverse('redrop'), json_data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
@@ -165,22 +162,72 @@ class DropTest(TestCase):
         packet = Packet.objects.get(id=packet_id)
         self.assertEqual(packet.owner, None)
 
-    def test_tmp(self):
-        user = add_user("test_user", "123456")
-        response = make_request(test_case=self, url='login', username="test_user", password="123456")
-        response = make_request(test_case=self, url='drop', packet_name="test_packet_name1", content="test_content1",
-                                lng=0, lat=0)
-        response = make_request(test_case=self, url='drop', packet_name="test_packet_name2", content="test_content2",
-                                lng=0, lat=0)
-        response = make_request(test_case=self, url='drop', packet_name="test_packet_name3", content="test_content3",
-                                lng=0, lat=0)
-        response = make_request(test_case=self, url='pick', id=Packet.objects.all()[0].id, lng=0, lat=0)
-        response = make_request(test_case=self, url='redrop', id=Packet.objects.all()[0].id, comment="test_comment")
-        response = make_request(test_case=self, url='get_owning_packets', page_id=0)
-        print(response.json())
-        response = make_request(test_case=self, url='ignore', id=Packet.objects.all()[0].id)
-        response = make_request(test_case=self, url='get_owning_packets', page_id=0)
-        print(response.json())
-        # response = make_request(test_case=self, url='redrop', id=Packet.objects.all()[0].id, comment="test_comment")
-        response = make_request(test_case=self, url='get_owned_packets', page_id=0)
-        print(response.json())
+    def test_get_packet_details(self):
+        # [TODO] refactor code below
+        user1 = add_user('user1', '1234567890')
+        do_login(self, 'user1', '1234567890')
+        json_data = new_packet("test1", "test1_content", 123.4567890, 0.0, 0, -1)
+        self.client.post(reverse('drop'), json_data, content_type="application/json")
+
+        user2 = add_user('user2', '1234567890')
+        do_login(self, 'user2', '1234567890')
+        data = {'lng': '123.4567891',
+                'lat': '0.0',
+                }
+        json_data = json.dumps(data)
+        response = self.client.post(reverse('get_nearby_packets'), json_data, content_type="application/json")
+        packet_id = response.json()['data'][0]['id']
+        data = {'id': packet_id,
+                'lng': '123.4567891',
+                'lat': '0.0',}
+        json_data = json.dumps(data)
+        response = self.client.post(reverse('pick'), json_data, content_type="application/json")
+        data = {'id': packet_id,
+                'comment': "test_comment",
+                'creator_only': 'flase',
+                'ratings': 1}
+        json_data = json.dumps(data)
+        response = self.client.post(reverse('redrop'), json_data, content_type="application/json")
+        data = {'id': 1}
+        json_data = json.dumps(data)
+        response = self.client.post(reverse('get_packet_details'), json_data, content_type="application/json")
+        right_response = {"msg": "Get packet details success",
+                          "data": {"username": "user1", "credit": 100, "create_time": "2016-12-12", "likes": 1,
+                                   "packet_name": "test1", "content": "test1_content", "dislikes": 0, "id": 1,
+                                   "comments": [
+                                       {"content": "test_comment", "username": "user2", "create_time": "2016-12-12"}]},
+                          "success": "true"}
+
+        # [TODO] Wait for credit and so on
+        self.assertEqual(right_response, right_response)
+        self.assertEqual(response.json()['data']['username'], "user1")
+        self.assertEqual(response.json()['data']['likes'], 1)
+        self.assertEqual(response.json()['data']['dislikes'], 0)
+        self.assertEqual(response.json()['data']['comments'][0]['content'], "test_comment")
+
+
+    # def test_ignore_packet(self):
+    #     add_user("test_user1", "123456")
+    #     add_user("test_user2", "123456")
+    #
+    #     make_request(test_case=self, url='login', username="test_user1", password="123456")
+    #     make_request(test_case=self, url='drop', packet_name="test_packet_name1", content="test_content1",
+    #                  lng=0, lat=0, delay=0, timeout=-1)
+    #     make_request(test_case=self, url='drop', packet_name="test_packet_name1", content="test_content2",
+    #                  lng=0, lat=0, delay=0, timeout=-1)
+    #     r = make_request(test_case=self, url='drop', packet_name="test_packet_name1", content="test_content3",
+    #                      lng=0, lat=0, delay=0, timeout=-1)
+    #
+    #     make_request(test_case=self, url='login', username="test_user2", password="123456")
+    #     response = make_request(test_case=self, url='pick', id=Packet.objects.all()[1].id, lng=0, lat=0)
+    #     # format[][][][][]
+    #     # response = make_request(test_case=self, url='redrop', id=Packet.objects.all()[1].id, comment="test_comment", 'creator_only' = 'flase', 'ratings' = '1')
+    #     # print response
+    #     response = make_request(test_case=self, url='get_owning_packets', page_id=0)
+    #     print(response.json())
+    #     response = make_request(test_case=self, url='ignore', id=Packet.objects.all()[1].id)
+    #     response = make_request(test_case=self, url='get_owning_packets', page_id=0)
+    #     print(response.json())
+    #     # response = make_request(test_case=self, url='redrop', id=Packet.objects.all()[0].id, comment="test_comment")
+    #     response = make_request(test_case=self, url='get_owned_packets', page_id=0)
+    #     print(response.json())

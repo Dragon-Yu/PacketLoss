@@ -78,7 +78,26 @@ class RegisterTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], 'false')
         self.assertEqual(len(User.objects.filter(username='user1')), 1)
-        # [TODO] test case 2 & test case 3
+
+        # test case 2
+        data = {}
+        data['username'] = 'select * from'
+        data['password'] = '12345678'
+        json_data = json.dumps(data)
+        response = self.client.post(reverse('register'), json_data, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], 'false')
+        self.assertEqual(len(User.objects.filter(username='select * from')), 0)
+
+        # test case 3
+        data ={}
+        data['username'] = 'user2'
+        data['password'] = ''
+        json_data = json.dumps(data)
+        response = self.client.post(reverse('register'), json_data, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], 'false')
+        self.assertEqual(len(User.objects.filter(username='user2')), 0)
 
 
 class LogoutTest(TestCase):
@@ -123,7 +142,6 @@ class ChangePasswordTest(TestCase):
         data['new_password'] = '1234567890aAa'
         json_data = json.dumps(data)
         response = self.client.post(reverse('password'), json_data, content_type="application/json")
-        print(response.json())
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], 'true')
 
