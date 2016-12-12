@@ -7,19 +7,23 @@ from django.contrib.auth.models import User
 
 from packet.models import Packet, Comment
 
+
 def make_request(test_case, url, **kwargs):
     json_data = json.dumps(kwargs)
     return test_case.client.post(reverse(url), json_data, content_type="application/json")
+
 
 def check_response_success(test_case, response):
     data = response.json()
     test_case.assertEqual(response.status_code, 200)
     test_case.assertEqual(data['success'], 'true')
 
+
 def check_response_fail(test_case, response):
     data = response.json()
     test_case.assertEqual(response.status_code, 200)
     test_case.assertEqual(data['success'], 'false')
+
 
 def add_user(username, password):
     user = User(username=username)
@@ -27,12 +31,21 @@ def add_user(username, password):
     user.save()
     return user
 
+
+def do_login(self, username, password):
+    data = {}
+    data['username'] = username
+    data['password'] = password
+    json_data = json.dumps(data)
+    self.client.post(reverse('login'), json_data, content_type="application/json")
+
+
 class DropTest(TestCase):
     # [TODO] combine all the test cases together to simplify the code
     def test_drop_packet(self):
         # [TODO] easier way to write test cases
         # case1 drop packet with valid data
-        user1 = add_user('user1', '1234567890')        
+        user1 = add_user('user1', '1234567890')
         do_login(self, 'user1', '1234567890')
         data = {}
         data['packet_name'] = "test1"
@@ -46,8 +59,8 @@ class DropTest(TestCase):
         packet = Packet.objects.filter(creator=user1)[0]
         self.assertEqual(packet.name, 'test1')
         self.assertEqual(packet.content, 'test1_content')
-        self.assertTrue(abs(packet.longitude-Decimal(123.4567890)) <= 0.00000001)
-        self.assertTrue(abs(packet.latitude-0) <= 0.00000001)
+        self.assertTrue(abs(packet.longitude - Decimal(123.4567890)) <= 0.00000001)
+        self.assertTrue(abs(packet.latitude - 0) <= 0.00000001)
 
         # case2 drop packet with invalid longitude
         data['lng'] = "180.123"
@@ -79,11 +92,11 @@ class DropTest(TestCase):
         data['lat'] = "0.0"
         json_data = json.dumps(data)
         self.client.post(reverse('drop'), json_data, content_type="application/json")
-        
+
         user2 = add_user('user2', '1234567890')
         do_login(self, 'user2', '1234567890')
         data = {'lng': '123.4567891',
-                'lat': '0.0', }
+                'lat': '0.0',}
         json_data = json.dumps(data)
         response = self.client.post(reverse('fetch'), json_data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
@@ -101,11 +114,11 @@ class DropTest(TestCase):
         data['lat'] = "0.0"
         json_data = json.dumps(data)
         self.client.post(reverse('drop'), json_data, content_type="application/json")
-        
+
         user2 = add_user('user2', '1234567890')
         do_login(self, 'user2', '1234567890')
         data = {'lng': '123.4567891',
-                'lat': '0.0', }
+                'lat': '0.0',}
         json_data = json.dumps(data)
         response = self.client.post(reverse('fetch'), json_data, content_type="application/json")
         packet_id = response.json()['data'][0]['id']
@@ -118,7 +131,7 @@ class DropTest(TestCase):
         self.assertEqual(response.json()['data']['packet_name'], 'test1')
         self.assertEqual(response.json()['data']['content'], 'test1_content')
         self.assertEqual(packet.owner, user2)
-        
+
     def test_redrop_packet(self):
         user1 = add_user('user1', '1234567890')
         do_login(self, 'user1', '1234567890')
@@ -129,11 +142,11 @@ class DropTest(TestCase):
         data['lat'] = "0.0"
         json_data = json.dumps(data)
         self.client.post(reverse('drop'), json_data, content_type="application/json")
-        
+
         user2 = add_user('user2', '1234567890')
         do_login(self, 'user2', '1234567890')
         data = {'lng': '123.4567891',
-                'lat': '0.0', }
+                'lat': '0.0',}
         json_data = json.dumps(data)
         response = self.client.post(reverse('fetch'), json_data, content_type="application/json")
         packet_id = response.json()['data'][0]['id']
@@ -143,7 +156,7 @@ class DropTest(TestCase):
         data = {'id': packet_id,
                 'comment': "test_comment",}
         json_data = json.dumps(data)
-        response = self.client.post(reverse('redrop'), json_data, content_type="application/json")        
+        response = self.client.post(reverse('redrop'), json_data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], 'true')
         comment = Comment.objects.filter(user=user2)[0]
@@ -155,9 +168,12 @@ class DropTest(TestCase):
     def test_tmp(self):
         user = add_user("test_user", "123456")
         response = make_request(test_case=self, url='login', username="test_user", password="123456")
-        response = make_request(test_case=self, url='drop', packet_name="test_packet_name1", content="test_content1", lng=0, lat=0)
-        response = make_request(test_case=self, url='drop', packet_name="test_packet_name2", content="test_content2", lng=0, lat=0)
-        response = make_request(test_case=self, url='drop', packet_name="test_packet_name3", content="test_content3", lng=0, lat=0)
+        response = make_request(test_case=self, url='drop', packet_name="test_packet_name1", content="test_content1",
+                                lng=0, lat=0)
+        response = make_request(test_case=self, url='drop', packet_name="test_packet_name2", content="test_content2",
+                                lng=0, lat=0)
+        response = make_request(test_case=self, url='drop', packet_name="test_packet_name3", content="test_content3",
+                                lng=0, lat=0)
         response = make_request(test_case=self, url='pick', id=Packet.objects.all()[0].id, lng=0, lat=0)
         response = make_request(test_case=self, url='redrop', id=Packet.objects.all()[0].id, comment="test_comment")
         response = make_request(test_case=self, url='get_owning_packets', page_id=0)
